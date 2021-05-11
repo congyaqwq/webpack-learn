@@ -1,8 +1,8 @@
 const path = require('path')
 const Webpack = require('webpack')
 const webpackConfig = require('./webpack.config')
+const CopyPlugin = require('copy-webpack-plugin')
 const { merge } = require('webpack-merge')
-const CopyWebpacckPlugin = require('webpack-merge')
 const OptimizeCssAssetsPlugin = require('uglifyjs-webpack-plugin')
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
 
@@ -15,10 +15,14 @@ module.exports = merge(webpackConfig, {
     contentBase: '../dist'
   },
   plugins: [
-    new CopyWebpacckPlugin([{
-      from: path.resolve(__dirname, '../public'),
-      to: path.resolve(__dirname, '../dist'),
-    }])
+    // new CopyPlugin({
+    //   patterns: [
+    //     {
+    //       from: path.resolve(__dirname, '../public'),
+    //       to: path.resolve(__dirname, '../dist/'),
+    //     },
+    //   ],
+    // }),
   ],
   optimization: {
     minimizer: [

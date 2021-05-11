@@ -1,17 +1,23 @@
 const path = require('path')
 const webpack = require('webpack')
+const happyPack = require('happypack')
+const os = require('os')
+const happyThreadPool = happyPack.ThreadPool({ size: os.cpus().length })
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 // 每次删除以前的配置
 const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 
 const MiniCssExtractPlugin = require("mini-css-extract-plugin")
 const { VueLoaderPlugin } = require('vue-loader')
+const CopyPlugin = require('copy-webpack-plugin')
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
+
+// const firstPlugin = require('./webpack-firstPlugin')
 
 const devMode = process.argv.indexOf('--mode=production') === -1
 
 
 module.exports = {
-  mode: 'development',
   entry: {
     main: ["@babel/polyfill", path.resolve(__dirname, '../src/main.js')],
     header: path.resolve(__dirname, '../src/header.js'),
@@ -42,7 +48,39 @@ module.exports = {
       chunkFilename: devMode ? '[id].css' : '[id].[hash].css'
     }),
     new VueLoaderPlugin(),
-    new webpack.HotModuleReplacementPlugin()
+    new webpack.HotModuleReplacementPlugin(),
+    new happyPack({
+      id: 'happyBabel', // loader对应的id标识
+      loaders: [
+        {
+          loader: 'babel-loader',
+          options: {
+            presets: [
+              ['@babel/preset-env']
+            ],
+            cacheDirectory: true
+          }
+        }
+      ],
+      threadPool: happyThreadPool // 共享进程池
+    }),
+    new webpack.DllReferencePlugin({
+      context: __dirname,
+      manifest: path.resolve(__dirname, './vendor-manifest.json')
+    }),
+    new CopyPlugin({
+      patterns: [
+        {
+          from: path.resolve(__dirname, '../build/static'),
+          to: path.resolve(__dirname, '../dist/static'),
+        },
+      ]
+    }),
+    new BundleAnalyzerPlugin({
+      analyzerHost: '127.0.0.1',
+      analyzerPort: 8888
+    }),
+    // new firstPlugin()
   ],
   resolve: {
     alias: {
@@ -55,16 +93,21 @@ module.exports = {
     rules: [
       {
         test: /\.vue$/i,
-        use: ['vue-loader']
+        use: ['vue-loader'],
+        include: [path.resolve(__dirname, '../src')],
+        exclude: /node_modules/
       },
       {
         test: /\.js$/i,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: ['@babel/preset-env']
+        use: [
+          {
+            loader: 'happypack/loader?id=happyBabel'
+            // loader: 'babel-loader',
+            // options: {
+            //   presets: ['@babel/preset-env']
+            // }
           }
-        },
+        ],
         exclude: /node_modules/
       },
       {
